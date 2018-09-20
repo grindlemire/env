@@ -46,6 +46,10 @@ func parseStruct(value reflect.Value) error {
 }
 
 func handleField(value reflect.Value, field reflect.StructField) error {
+	if isSkippedField(field) {
+		return nil
+	}
+
 	rawVal, err := getFieldValue(field)
 	if err != nil {
 		return err
@@ -59,6 +63,14 @@ func handleField(value reflect.Value, field reflect.StructField) error {
 	return nil
 }
 
+func isSkippedField(field reflect.StructField) bool {
+	varName, hasEnv := field.Tag.Lookup("env")
+	if !hasEnv || varName == "" || varName == "-" {
+		return true
+	}
+	return false
+}
+
 func getFieldValue(field reflect.StructField) (string, error) {
 	required, err := isRequired(field)
 	if err != nil {
@@ -67,7 +79,6 @@ func getFieldValue(field reflect.StructField) (string, error) {
 
 	varName, hasEnv := field.Tag.Lookup("env")
 	if !hasEnv || varName == "" || varName == "-" {
-		fmt.Printf("Skipping field %s\n", field.Name)
 		return "", nil
 	}
 	varName = strings.TrimSpace(varName)
